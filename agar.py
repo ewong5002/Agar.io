@@ -1,4 +1,4 @@
-import pygame, os
+import pygame, os, math
 from random import randint
 
 pygame.init()
@@ -24,14 +24,18 @@ class Player(pygame.sprite.Sprite):
 	def input(self):
 		key = pygame.key.get_pressed()
 
-		if key[pygame.K_w]:
+		if (self.rect.center[1] + self.rect.width//2 >= 1600 or self.rect.center[1] - self.rect.width//2 <= -1600):
+			self.direction.y *= -1
+		elif key[pygame.K_w]:
 			self.direction.y = -1
 		elif key[pygame.K_s]:
 			self.direction.y = 1
 		else:
 			self.direction.y = 0
 
-		if key[pygame.K_d]:
+		if (self.rect.center[0] + self.rect.width//2 >= 1600 or self.rect.center[0] - self.rect.width//2 <= -1600):
+			self.direction.x *= -1
+		elif key[pygame.K_d]:
 			self.direction.x = 1
 		elif key[pygame.K_a]:
 			self.direction.x = -1
@@ -58,8 +62,8 @@ class Camera(pygame.sprite.Group):
 	
 	def draw_objects(self, player):
 		self.center_target(player)
-
-		for sprite in sorted(self.sprites(), key = lambda sprite: sprite.image.get_width):
+		
+		for sprite in self.sprites():
 			offset_pos = sprite.rect.topleft - self.offset
 			self.display.blit(sprite.image, offset_pos)
 
@@ -70,15 +74,17 @@ white = '#FFFFFF'
 width = height = 800
 
 screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Agar.io")
 
 # Set up camera and objects on screen
 camera = Camera()
-player = Player((400, 400),camera)
 
-for i in range(20):
-	random_x = randint(0, 750)
-	random_y = randint(0, 750)
+for i in range(1000):
+	random_x = randint(-1600, 1600)
+	random_y = randint(-1600, 1600)
 	Pellet((random_x, random_y), camera)
+
+player = Player((400, 400),camera)
 
 while True:
 	for event in pygame.event.get():
