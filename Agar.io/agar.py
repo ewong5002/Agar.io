@@ -11,6 +11,7 @@ class Screen(pygame.Rect):
 		self.scale = 1.2
 		self.min_scale = 2
 
+	# Zoom out screen as player grows
 	def zoom (self):
 		scaled = (int(self.scaled_screen.get_width() * self.scale), int(self.scaled_screen.get_height() * self.scale))
 		if scaled[0] <= self.screen.get_width() / self.min_scale:
@@ -38,7 +39,7 @@ class Player(pygame.sprite.Sprite):
 		self.direction = pygame.math.Vector2()
 		self.speed = 3
 
-	# Player's controls
+	# Player controls
 	def input(self):
 		key = pygame.key.get_pressed()
 
@@ -59,8 +60,7 @@ class Player(pygame.sprite.Sprite):
 			self.direction.x = -1
 		else:
 			self.direction.x = 0
-	
-	# Player's movement
+
 	def update(self):
 		self.input()
 		self.rect.center += self.direction * self.speed
@@ -80,6 +80,7 @@ class Ai(pygame.sprite.Sprite):
 		self.direction = pygame.math.Vector2()
 		self.speed = 2
 
+	# Generate AI movements
 	def movement(self):
 		move_y = randint(0, 2)
 		move_x = randint(0,2)
@@ -105,7 +106,7 @@ class Ai(pygame.sprite.Sprite):
 				self.direction.x = 0
 
 	def update(self):
-		self.input()
+		self.movement()
 		self.rect.center += self.direction * self.speed
 
 	def growth(self):
@@ -134,6 +135,7 @@ class Camera(pygame.sprite.Group):
 			offset_pos = sprite.rect.topleft - self.offset
 			self.display.blit(sprite.image, offset_pos)
 
+# Initial spawn of all objects
 def spawn():
 	screen.fill(white)
 
@@ -162,6 +164,7 @@ def spawn():
 	rand_y = randint (-1900, 1900)
 	player = Player((rand_x, rand_y),camera)
 
+# Respawn any dead AIs
 def ai_spawn(dead_ai):
 	for i in range(dead_ai):
 		rand_x = randint (-1900, 1900)
@@ -169,6 +172,7 @@ def ai_spawn(dead_ai):
 		ai = Ai((rand_x, rand_y), camera)
 		ais.append(ai)
 
+# Replenish pellet supply
 def pellet_spawn():
 	for i in range(750):
 		random_x = randint(-2000, 2000)
@@ -208,12 +212,11 @@ while True:
 		pellets.pop(index)
 		player.growth(1)
 
+	# AI counter variables
 	ai_index = 0
 	dead_ai = 0
 
 	for ai in ais:
-		ai.movement()
-
 		if ai.rect.collidelist(pellets) >= 0:
 			index = ai.rect.collidelist(pellets)
 			pellets[index].kill()
@@ -233,7 +236,6 @@ while True:
 
 		ai_index += 1
 
-	# Respawn AI Players
 	ai_spawn(dead_ai)
 
 	if len(pellets) < 1000:
