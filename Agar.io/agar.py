@@ -104,6 +104,10 @@ class Ai(pygame.sprite.Sprite):
 			case _:
 				self.direction.x = 0
 
+	def update(self):
+		self.input()
+		self.rect.center += self.direction * self.speed
+
 	def growth(self):
 		self.size += 1
 		self.image = pygame.transform.scale(pygame.image.load('./Images/computer.png').convert_alpha(), (self.size, self.size))
