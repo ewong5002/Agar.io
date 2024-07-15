@@ -2,6 +2,7 @@ import pygame, os, math
 from random import randint
 
 pygame.init()
+os.chdir('./Game Files/Agar.io')
 
 class Screen(pygame.Rect):
 
@@ -71,39 +72,55 @@ class Player(pygame.sprite.Sprite):
 		self.rect = self.rect.inflate(growth_size, growth_size)
 
 class Ai(pygame.sprite.Sprite):
-	og_size = size = 100
+	og_size = size = randint(100, 300)
 
 	def __init__ (self, pos, group):
 		super().__init__(group)
 		self.image = pygame.transform.scale(pygame.image.load('./Images/computer.png').convert_alpha(), (self.og_size, self.og_size))
 		self.rect = self.image.get_rect(center = pos)
 		self.direction = pygame.math.Vector2()
-		self.speed = 2
+		self.speed = 1
 
-	# Generate AI movements
+		# Generate random movement pattern for AI
+		self.move = randint(0, 1)
+		self.moves = 0
+
+	# AI movements
 	def movement(self):
-		move_y = randint(0, 2)
-		move_x = randint(0,2)
-
-		match move_y:
+		match self.move:
 			case 0:
-				self.direction.y = -1
+				if self.moves <= 150:
+					self.direction.x = -1
+					self.direction.y = 0
+				elif self.moves <= 300:
+					self.direction.x = 0
+					self.direction.y = 1
+				elif self.moves <= 450:
+					self.direction.x = 1
+					self.direction.y = 0
+				elif self.moves <= 600:
+					self.direction.x = 0
+					self.direction.y = -1
 			case 1:
-				self.direction.y = 1
-			case 2:
-				self.direction.y = 0
+				if self.moves <= 150:
+					self.direction.x = -1
+					self.direction.y = 1
+				elif self.moves <= 300:
+					self.direction.x = 1
+					self.direction.y = 1
+				elif self.moves <= 450:
+					self.direction.x = 1
+					self.direction.y = -1
+				elif self.moves <= 600:
+					self.direction.x = -1
+					self.direction.y = -1
 			case _:
+				self.direction.x = 0
 				self.direction.y = 0
 
-		match move_x:
-			case 0:
-				self.direction.x = -1
-			case 1:
-				self.direction.x = 1
-			case 2:
-				self.direction.x = 0
-			case _:
-				self.direction.x = 0
+		self.moves += 1
+		if self.moves > 600:
+			self.moves = 0
 
 	def update(self):
 		self.movement()
@@ -154,8 +171,8 @@ def spawn():
 	ais = []
 	
 	for i in range(3):
-		rand_x = randint (-1900, 1900)
-		rand_y = randint (-1900, 1900)
+		rand_x = randint (-1670, 1670)
+		rand_y = randint (-1670, 1670)
 		ai = Ai((rand_x, rand_y), camera)
 		ais.append(ai)
 
@@ -167,8 +184,8 @@ def spawn():
 # Respawn any dead AIs
 def ai_spawn(dead_ai):
 	for i in range(dead_ai):
-		rand_x = randint (-1900, 1900)
-		rand_y = randint (-1900, 1900)
+		rand_x = randint (-1670, 1670)
+		rand_y = randint (-1670, 1670)
 		ai = Ai((rand_x, rand_y), camera)
 		ais.append(ai)
 
@@ -184,6 +201,10 @@ def pellet_spawn():
 white = '#FFFFFF'
 black = '#000000'
 
+# Text variables
+game_font = pygame.font.Font("freesansbold.ttf", 32)
+text_pos = (350, 350)
+
 # Screen Variables
 width = height = 800
 
@@ -196,50 +217,90 @@ camera = Camera()
 
 spawn()
 
+# Lopp variables
+run = True
+display = True
+
 while True:
+	while run:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+		
+		main_screen.refresh()
+
+		camera.update()
+		camera.draw_objects(player)
+
+		if player.rect.collidelist(pellets) >= 0:
+			index = player.rect.collidelist(pellets)
+			pellets[index].kill()
+			pellets.pop(index)
+
+			# Unstuck player
+			if (player.rect.width//2 + 2 + player.rect.center[0] >= 2000):
+				player.rect.move_ip(-3, 0)
+			elif (player.rect.width//2 + 2 + player.rect.center[1] >= 2000):
+				player.rect.move_ip(0, -3)
+
+			player.growth(1)
+
+		# AI counter variables
+		ai_index = 0
+		dead_ai = 0
+
+		for ai in ais:
+			if ai.rect.collidelist(pellets) >= 0:
+				index = ai.rect.collidelist(pellets)
+				pellets[index].kill()
+				pellets.pop(index)
+				ai.growth()
+			
+			if pygame.sprite.collide_mask(ai, player):
+				ai_size = ai.rect.width
+				player_size = player.rect.width
+
+				if ai_size < player_size:
+					ais[ai_index].kill()
+					ais.pop(ai_index)
+					dead_ai += 1
+					player.growth(ai_size//3)
+				elif player_size < ai_size:
+					pygame.time.delay(1000)
+					run = False
+
+			ai_index += 1
+
+		ai_spawn(dead_ai)
+
+		if len(pellets) < 1000:
+			pellet_spawn()
+
+		pygame.display.update()
+	
+	# Game over display screen
+	if display:
+		main_screen.screen.fill(black)
+
+		text = ["Game Over", "Your Score was " + str(player.rect.width), "Press the Spacebar to Restart", "Press Esc to Exit"]
+		game_over = []
+
+		for line in text:
+			game_over.append(game_font.render(line, False, white))
+		
+		for line in range(len(game_over)):
+			main_screen.screen.blit(game_over[line], (340 - (6*len(text[line])), 350+(line*32)+(15*line)))
+		pygame.display.update()
+
+		display = False
+
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			pygame.quit()
-	
-	main_screen.refresh()
 
-	camera.update()
-	camera.draw_objects(player)
-
-	if player.rect.collidelist(pellets) >= 0:
-		index = player.rect.collidelist(pellets)
-		pellets[index].kill()
-		pellets.pop(index)
-		player.growth(1)
-
-	# AI counter variables
-	ai_index = 0
-	dead_ai = 0
-
-	for ai in ais:
-		if ai.rect.collidelist(pellets) >= 0:
-			index = ai.rect.collidelist(pellets)
-			pellets[index].kill()
-			pellets.pop(index)
-			ai.growth()
-		
-		if pygame.sprite.collide_mask(ai, player):
-			ai_size = ai.rect.width
-			player_size = player.rect.width
-
-			if ai_size < player_size:
-				ais[ai_index].kill()
-				ais.pop(ai_index)
-				dead_ai += 1
-				player.growth(ai_size//3)
-			#elif player_size < ai_size:
-
-		ai_index += 1
-
-	ai_spawn(dead_ai)
-
-	if len(pellets) < 1000:
-		pellet_spawn()
-
-
-	pygame.display.update()
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_SPACE:
+				run = display = True
+				spawn()
+			elif event.key == pygame.K_ESCAPE:
+				pygame.quit()
