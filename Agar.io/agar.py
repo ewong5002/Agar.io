@@ -9,14 +9,6 @@ class Screen(pygame.Rect):
 	def __init__ (self, screen):
 		self.screen = screen
 		self.scaled_screen = self.screen
-		self.scale = 1.2
-		self.min_scale = 2
-
-	# Zoom out screen as player grows
-	def zoom (self):
-		scaled = (int(self.scaled_screen.get_width() * self.scale), int(self.scaled_screen.get_height() * self.scale))
-		if scaled[0] <= self.screen.get_width() / self.min_scale:
-			self.scaled_screen = pygame.transform.smoothscale(self.scaled_screen, scaled)	
 	
 	def refresh(self):
 		self.screen.fill(black)
@@ -39,6 +31,7 @@ class Player(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = pos)
 		self.direction = pygame.math.Vector2()
 		self.speed = 3
+		self.zoom = 1
 
 	# Player controls
 	def input(self):
@@ -142,15 +135,17 @@ class Camera(pygame.sprite.Group):
 		self.half_h = self.display.get_size()[1] // 2
 
 	def center_target(self, target):
-		self.offset.x = target.rect.centerx - self.half_w
-		self.offset.y = target.rect.centery - self.half_h
+		self.offset.x = (target.rect.centerx * target.zoom) - self.half_w
+		self.offset.y = (target.rect.centery * target.zoom)  - self.half_h
 	
 	def draw_objects(self, player):
 		self.center_target(player)
 		
 		for sprite in self.sprites():
+			image = sprite.image
+			dimensions = int(image.get_rect().w * player.zoom)
 			offset_pos = sprite.rect.topleft - self.offset
-			self.display.blit(sprite.image, offset_pos)
+			self.display.blit(pygame.transform.scale(image, (dimensions, dimensions)), offset_pos)
 
 # Initial spawn of all objects
 def spawn():
@@ -237,6 +232,9 @@ while True:
 			pellets[index].kill()
 			pellets.pop(index)
 
+			if player.zoom > 10:
+				player.zoom -= 0.01
+
 			# Unstuck player
 			if (player.rect.width//2 + 2 + player.rect.center[0] >= 2000):
 				player.rect.move_ip(-3, 0)
@@ -264,7 +262,11 @@ while True:
 					ais[ai_index].kill()
 					ais.pop(ai_index)
 					dead_ai += 1
-					player.growth(ai_size//3)
+					player.growth(ai_size//5)
+					
+					if player.zoom > 10:
+						player.zoom -= (ai_size//500)
+						
 				elif player_size < ai_size:
 					pygame.time.delay(1000)
 					run = False
