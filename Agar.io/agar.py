@@ -2,7 +2,7 @@ import pygame, os, math
 from random import randint
 
 pygame.init()
-os.chdir('./Game Files/Agar.io')
+os.chdir('./Agar.io')
 
 class Screen(pygame.Rect):
 
